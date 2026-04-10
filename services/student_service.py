@@ -14,7 +14,6 @@ MOCK_STUDENTS: dict[str, dict] = {
     "1234": {
         "studentId": "1234",
         "name": "Rahul Sharma",
-        "verificationPin": "1234",
         "attendance": 75,
         "marks": 68,
         "quizAvg": 60,
@@ -29,7 +28,6 @@ MOCK_STUDENTS: dict[str, dict] = {
     "5678": {
         "studentId": "5678",
         "name": "Priya Patel",
-        "verificationPin": "5678",
         "attendance": 92,
         "marks": 88,
         "quizAvg": 85,
@@ -44,7 +42,6 @@ MOCK_STUDENTS: dict[str, dict] = {
     "9999": {
         "studentId": "9999",
         "name": "Amit Kumar",
-        "verificationPin": "9999",
         "attendance": 50,
         "marks": 42,
         "quizAvg": 35,
@@ -67,12 +64,6 @@ def get_student(student_id: str) -> Optional[dict]:
     else:
         logger.warning(f"Student not found for ID: {student_id}")
     return student
-
-
-def verify_student_pin(student: dict, entered_pin: str) -> bool:
-    """Verify keypad PIN against stored PIN."""
-    expected_pin = str(student.get("verificationPin", "")).strip()
-    return bool(expected_pin) and entered_pin.strip() == expected_pin
 
 
 def format_student_data(student: dict) -> str:
