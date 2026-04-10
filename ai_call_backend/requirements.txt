@@ -1,0 +1,15 @@
+# ── Core ───────────────────────────────────────────────────────
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+python-multipart==0.0.9
+
+# ── Twilio ─────────────────────────────────────────────────────
+twilio==9.0.0
+
+# ── AI / LangGraph ────────────────────────────────────────────
+langgraph==1.0.1
+langchain-mistralai==0.2.0
+
+# ── Optional: MongoDB (uncomment when moving to real DB) ──────
+# pymongo==4.8.0
+# motor==3.5.0
