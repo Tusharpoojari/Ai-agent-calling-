@@ -3,10 +3,11 @@ call.py - Twilio Voice Webhook Routes
 =====================================
 Handles the entire phone-call lifecycle:
   1. /voice        -> greets the caller, asks for student ID
-  2. /process-id   -> captures DTMF student ID, fetches AI insights, speaks them
+  2. /process-id   -> captures spoken or typed student ID, fetches AI insights, speaks them
 """
 
 import logging
+import re
 
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import Response
@@ -24,10 +25,49 @@ LANGUAGE = "en-IN"
 GATHER_TIMEOUT = 10
 MAX_DIGITS_ID = 10
 
+SPOKEN_DIGIT_MAP = {
+    "zero": "0",
+    "oh": "0",
+    "o": "0",
+    "one": "1",
+    "two": "2",
+    "to": "2",
+    "too": "2",
+    "three": "3",
+    "four": "4",
+    "for": "4",
+    "five": "5",
+    "six": "6",
+    "seven": "7",
+    "eight": "8",
+    "ate": "8",
+    "nine": "9",
+}
+
 
 def _twiml(response: VoiceResponse) -> Response:
     """Return TwiML XML response."""
     return Response(content=str(response), media_type="application/xml")
+
+
+def _normalize_student_id(digits: str = "", speech_result: str = "") -> str:
+    """Convert keypad digits or spoken words into a clean numeric student ID."""
+    cleaned_digits = "".join(ch for ch in digits if ch.isdigit())
+    if cleaned_digits:
+        return cleaned_digits[:MAX_DIGITS_ID]
+
+    normalized_words = re.sub(r"[^a-z0-9\s]", " ", speech_result.lower())
+    student_id_parts: list[str] = []
+
+    for token in normalized_words.split():
+        if token.isdigit():
+            student_id_parts.append(token)
+            continue
+        mapped_digit = SPOKEN_DIGIT_MAP.get(token)
+        if mapped_digit is not None:
+            student_id_parts.append(mapped_digit)
+
+    return "".join(student_id_parts)[:MAX_DIGITS_ID]
 
 
 @router.post("/voice")
@@ -43,14 +83,17 @@ async def voice_welcome(request: Request):
     )
 
     gather = Gather(
+        input="speech dtmf",
         num_digits=MAX_DIGITS_ID,
         action="/api/call/process-id",
         method="POST",
         timeout=GATHER_TIMEOUT,
         finish_on_key="#",
+        speech_timeout="auto",
+        language=LANGUAGE,
     )
     gather.say(
-        "Please enter your student ID using the keypad, followed by the hash key.",
+        "Please say your student ID clearly, or enter it using the keypad followed by the hash key.",
         voice=VOICE,
         language=LANGUAGE,
     )
@@ -67,16 +110,25 @@ async def voice_welcome(request: Request):
 
 
 @router.post("/process-id")
-async def process_student_id(request: Request, Digits: str = Form("")):
-    """Capture student ID, generate AI summary, and end call."""
-    student_id = Digits.strip()
-    logger.info(f"Received student ID digits: {student_id}")
+async def process_student_id(
+    request: Request,
+    Digits: str = Form(""),
+    SpeechResult: str = Form(""),
+):
+    """Capture student ID from keypad or speech, generate AI summary, and end call."""
+    student_id = _normalize_student_id(Digits, SpeechResult)
+    logger.info(
+        "Received student input | digits=%s | speech=%s | normalized=%s",
+        Digits,
+        SpeechResult,
+        student_id,
+    )
 
     response = VoiceResponse()
 
     if not student_id:
         response.say(
-            "No student ID was entered. Let's try again.",
+            "I could not understand the student ID. Let's try again.",
             voice=VOICE,
             language=LANGUAGE,
         )

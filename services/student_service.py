@@ -11,6 +11,20 @@ from typing import Optional
 logger = logging.getLogger("campus++.services.student")
 
 MOCK_STUDENTS: dict[str, dict] = {
+    "2222": {
+        "studentId": "2222",
+        "name": "Test Student",
+        "attendance": 82,
+        "marks": 74,
+        "quizAvg": 78,
+        "riskLevel": "Low",
+        "subjects": {
+            "Mathematics": 76,
+            "Physics": 72,
+            "Computer Science": 88,
+            "English": 70,
+        },
+    },
     "1234": {
         "studentId": "1234",
         "name": "Rahul Sharma",
